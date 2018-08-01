@@ -1,0 +1,10 @@
+#tested on pytorch=0.4.0
+numpy
+matplotlib
+torchvision
+torch
+pandas
+scikit-image
+pillow==4.1.1
+
+
