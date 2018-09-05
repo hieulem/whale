@@ -101,10 +101,12 @@ class Pipe:
         print('Processing all the patches')
         for i in range(0,n_patches,bs):
             batch  = patches[i:i+bs,:,:,:]
-            batch = torch.from_numpy(batch).float().div(255)
-            batch = (batch  - 0.5) * 2
-            temp = self.network.get_prediction_tensor(batch)
-            out[i:i+bs,:,:,:] = temp['raw_out']
+        
+            #need to process the batch here:
+            temp = self.network.(batch)
+            #need to convert the raw prediction into an image of opt.size x opt.size 
+
+            #out[i:i+bs,:,:,:] = temp['raw_out']
             
             #print(temp['raw_out'].shape)
 
