@@ -8,7 +8,8 @@ python gen_trainingpatches.py --root DIR_TO_ORIGINAL_IMAGES --step STEP_SIZE --s
 
 The folder “A” that contains the training dataset should be organized as follow:
 
-A\train\whale contains all training images for whale
+A\train\whales contains all training images for whale
+
 A\train\water contains all training images for water 
 
 
