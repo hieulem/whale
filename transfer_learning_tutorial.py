@@ -18,6 +18,7 @@ from m_util import *
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--name')
+parser.add_argument('--data_dir')
 opt = parser.parse_args()
 opt.checkpoint = ('./trained_model/'+opt.name)
 sdmkdir(opt.checkpoint)
@@ -41,53 +42,31 @@ data_transforms = {
 }
 
 #Preparing the data
-
-data_dir = './fulldata/'+opt.name
+data_dir = opt.data_dir
+print('Loading data')
 image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
                                           data_transforms[x])
-                  for x in ['train', 'val']}
+                  for x in ['train']}
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
                                              shuffle=True, num_workers=4)
-              for x in ['train', 'val']}
-dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+              for x in ['train']}
+dataset_sizes = {x: len(image_datasets[x]) for x in ['train']}
+
+print('dataset size: %d'%(dataset_sizes['train']))
+
 class_names = image_datasets['train'].classes
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
-
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
-
-    best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = 0.0
-    model.eval()
-
-    running_loss = 0.0
-    running_corrects = 0
-    phase = 'val'
-    for inputs, labels in dataloaders['val']:
-        outputs = model(inputs)
-        _, preds = torch.max(outputs, 1)
-        loss = criterion(outputs, labels)
-        running_loss += loss.item() * inputs.size(0)
-        running_corrects += torch.sum(preds == labels.data)
-        
-    epoch_loss = running_loss / dataset_sizes[phase]
-    epoch_acc = running_corrects.double() / dataset_sizes[phase]
-    print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-        'starting', epoch_loss, epoch_acc))
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
-
-        # Each epoch has a training and validation phase
-        for phase in ['train', 'val']:
+        for phase in ['train']:
             if phase == 'train':
                 scheduler.step()
                 model.train()  # Set model to training mode
                 filename = 'epoch_'+str(epoch)+'.pth'
-                torch.save(model.state_dict(),opt.checkpoint+'/'+filename)
             else:
                 model.eval()   # Set model to evaluate mode
 
@@ -123,14 +102,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
             print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                 phase, epoch_loss, epoch_acc))
-
-            # deep copy the model
-            if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
-                best_model_wts = copy.deepcopy(model.state_dict())
-                filename = 'best_epoch'+str(epoch)+'.pth'
-                torch.save(model.state_dict(),opt.checkpoint+'/'+filename)
-        print()
+            torch.save(model.state_dict(),opt.checkpoint+'/'+filename)
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
@@ -146,9 +118,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 model_ft = models.resnet18(pretrained=True) #Download the pretrained model from modelZoo
 num_ftrs = model_ft.fc.in_features  
 model_ft.fc = nn.Linear(num_ftrs, 2)    #Replace the last layer by a linear to map the features to our classes
-
 model_ft = model_ft.to(device)
-
 criterion = nn.CrossEntropyLoss()
 
 # Observe that all parameters are being optimized
@@ -157,13 +127,10 @@ optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
 # Decay LR by a factor of 0.1 every 7 epochs
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 
+print(model_ft)
+
 ######################################################################
 # Train and evaluate
-# ^^^^^^^^^^^^^^^^^^
-#
-# It should take around 15-25 min on CPU. On GPU though, it takes less than a
-# minute.
-#
 
 model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
                        num_epochs=25)
